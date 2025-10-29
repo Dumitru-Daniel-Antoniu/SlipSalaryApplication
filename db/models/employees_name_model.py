@@ -2,20 +2,17 @@ from __future__ import annotations
 
 from db.session import db
 
-from sqlalchemy import Integer, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
-class EmployeesCNP(db.Model):
-    __tablename__ = "employees_cnp"
+class EmployeesName(db.Model):
+    __tablename__ = "employees_name"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    CNP: Mapped[str] = mapped_column(String(13), nullable=False, unique=True)
+    cnp: Mapped[str] = mapped_column(String(13), primary_key=True, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    surname: Mapped[str] = mapped_column(String(50), nullable=False)
 
-    names: Mapped["EmployeesName"] = relationship(
-        back_populates="employee",
-        cascade="all, delete-orphan"
-    )
     personal_information: Mapped["EmployeesPersonalInformation"] = relationship(
         back_populates="employee",
         cascade="all, delete-orphan"

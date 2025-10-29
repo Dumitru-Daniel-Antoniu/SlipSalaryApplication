@@ -15,6 +15,6 @@ class EmployeesPersonalInformation(db.Model):
     department: Mapped[str] = mapped_column(String(50), nullable=False)
     date_of_birth: Mapped[date] = mapped_column(Date, nullable=False)
     date_of_hire: Mapped[date] = mapped_column(Date, nullable=False)
-    employee_id: Mapped[int] = mapped_column(ForeignKey("employees_cnp.id"), nullable=False)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees_name.id"), nullable=False)
 
-    employee: Mapped["EmployeesCNP"] = relationship(back_populates="personal_information")
+    employee: Mapped["EmployeesName"] = relationship(back_populates="personal_information")

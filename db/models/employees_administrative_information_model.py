@@ -14,7 +14,7 @@ class EmployeesAdministrativeInformation(db.Model):
     month_id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees_cnp.id"), nullable=False)
 
-    employee: Mapped["EmployeesCNP"] = relationship(back_populates="administrative_information")
+    employee: Mapped["EmployeesName"] = relationship(back_populates="administrative_information")
 
     salary: Mapped[List["EmployeesSalary"]] = relationship(
         back_populates="employee",

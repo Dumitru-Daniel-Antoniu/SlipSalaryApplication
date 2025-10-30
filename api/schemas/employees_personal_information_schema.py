@@ -25,3 +25,7 @@ class EmployeesPersonalInformationSchema(BaseModel):
         if v > date.today():
             raise ValueError("Date of hire cannot be in the future")
         return v
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True

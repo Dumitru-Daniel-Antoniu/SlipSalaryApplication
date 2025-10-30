@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from db.session import db
+from db.base import Base
 
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
-class EmployeesDays(db.Model):
+class EmployeesDays(Base):
     __tablename__ = "employees_days"
 
     work: Mapped[int] = mapped_column(Integer, nullable=False)

@@ -1,13 +1,12 @@
-FROM python:3.10
-
-EXPOSE 5000
+FROM python:3.11
 
 WORKDIR /app
 
-COPY requirements.txt
-
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["flask", "run"]
+EXPOSE 8000
+
+CMD ["uvicorn", "app:app"]

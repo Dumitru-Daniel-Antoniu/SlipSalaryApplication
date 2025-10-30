@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from db.session import db
+from db.base import Base
 
 from sqlalchemy import ForeignKey, Float, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
-class EmployeesSalary(db.Model):
+class EmployeesSalary(Base):
     __tablename__ = "employees_salary"
 
     month: Mapped[int] = mapped_column(Integer, nullable=False)

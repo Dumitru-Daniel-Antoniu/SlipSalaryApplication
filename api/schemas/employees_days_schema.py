@@ -10,3 +10,7 @@ class EmployeesDaysSchema(BaseModel):
         if self.work + self.vacation != 22:
             raise ValueError("Work and vacation days must be exactly 22")
         return self
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True

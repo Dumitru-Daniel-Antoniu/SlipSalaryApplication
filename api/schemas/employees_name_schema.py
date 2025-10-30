@@ -1,15 +1,10 @@
-from pydantic import BaseModel, StrictStr, field_validator
+from pydantic import BaseModel, Field, StrictInt, StrictStr, field_validator
 
 class EmployeesNameSchema(BaseModel):
-    cnp: StrictStr
     name: StrictStr
     surname: StrictStr
+    employee_id: StrictInt = Field(alias="employeeId")
 
-    @field_validator("cnp")
-    def cnp_validator(cls, v: str) -> str:
-        if not (len(v) == 13 and v.isdigit()):
-            raise ValueError("CNP must have exactly 13 digits")
-        return v
 
     @field_validator("name", "surname")
     def name_and_surname_validator(cls, v: str) -> str:

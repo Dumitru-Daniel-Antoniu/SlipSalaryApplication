@@ -4,9 +4,11 @@ services:
   web:
     build: .
     ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://admin:password@postgres_db:5432/myapp
+    depends_on:
+      - postgres
 
   postgres:
     image: postgres:16

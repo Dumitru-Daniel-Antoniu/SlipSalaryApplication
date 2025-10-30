@@ -5,6 +5,8 @@ from db.base import Base
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from typing import List
+
 
 class EmployeesCNP(Base):
     __tablename__ = "employees_cnp"
@@ -20,7 +22,7 @@ class EmployeesCNP(Base):
         back_populates="employee",
         cascade="all, delete-orphan"
     )
-    administrative_information: Mapped["EmployeesAdministrativeInformation"] = relationship(
+    salary_information: Mapped[List["EmployeesSalary"]] = relationship(
         back_populates="employee",
         cascade="all, delete-orphan"
     )

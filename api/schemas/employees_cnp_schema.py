@@ -1,6 +1,6 @@
 from pydantic import BaseModel, StrictInt, StrictStr, field_validator
 
-class EmployeesNameSchema(BaseModel):
+class EmployeesCNPSchema(BaseModel):
     id: StrictInt
     cnp: StrictStr
 

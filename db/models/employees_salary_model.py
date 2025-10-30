@@ -13,6 +13,8 @@ class EmployeesSalary(Base):
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     salary: Mapped[float] = mapped_column(Float, nullable=False)
     bonus = Mapped[float] = mapped_column(Float, nullable=False)
-    month_id: Mapped[int] = mapped_column(ForeignKey("employees_administrative_information.month_id"), nullable=False)
+    work: Mapped[int] = mapped_column(Integer, nullable=False)
+    vacation: Mapped[int] = mapped_column(Integer, nullable=False)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees_cnp.cnp"), nullable=False)
 
-    employee: Mapped["EmployeesAdministrativeInformation"] = relationship(back_populates="salary")
+    employee: Mapped["EmployeesCNP"] = relationship(back_populates="salary_information")

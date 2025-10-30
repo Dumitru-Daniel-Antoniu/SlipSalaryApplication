@@ -11,11 +11,13 @@ class EmployeesPersonalInformationSchema(BaseModel):
     date_of_hire: date = Field(alias="dateOfHire")
     employee_id: StrictInt = Field(alias="employeeId")
 
+
     @field_validator("date_of_birth")
     def date_of_birth_validator(cls, v: date) -> date:
         if not (BIRTH_MIN <= v <= BIRTH_MAX):
             raise ValueError("Date of birth must be between 1965-01-01 and 2006-12-31")
         return v
+
 
     @field_validator("date_of_hire")
     def date_of_hire_validator(cls, v: date, info):

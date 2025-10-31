@@ -1,3 +1,5 @@
+import logging
+
 from flask import Blueprint, request, jsonify, abort
 from db.session import async_session
 
@@ -8,18 +10,24 @@ from db.models.employees_salary_model import EmployeesSalary
 from sqlalchemy import select
 
 
+logging.basicConfig(level=logging.INFO)
+
 salary_bp = Blueprint("salary", __name__)
 
 
 def validate_salary_days_request(data):
-    required_fields = {"month", "year", "salary", "bonus", "work", "vacation", "cnp"}
-    if set(data.keys()) != required_fields:
+    required_fields_first = {"month", "year", "salary", "bonus", "work", "vacation", "employeeId"}
+    required_fields_second = {"month", "year", "salary", "bonus", "work", "vacation", "employee_id"}
+    logging.info("The keys are the following: %s", data.keys())
+    if set(data.keys()) != required_fields_first and set(data.keys()) != required_fields_second:
         abort(400, "Invalid salary/days request structure")
     return data
 
 
 @salary_bp.route("/salary", methods=["POST"])
 async def create_salary():
+    logging.info("POST request created")
+    logging.info("The structure of the request is %s", request.get_json())
     data = validate_salary_days_request(request.get_json())
     async with async_session() as session:
         salary_data = EmployeesSalarySchema.model_validate({
@@ -29,10 +37,12 @@ async def create_salary():
             "bonus": data["bonus"],
             "work": data["work"],
             "vacation": data["vacation"],
-            "employeeId": data["cnp"]
+            "employeeId": data["employeeId"]
         })
 
+        logging.info("The validated model is %s", salary_data)
         salary = EmployeesSalary(**salary_data.model_dump())
+        logging.info("The salary object to be added is %s", salary)
         session.add(salary)
         await session.commit()
 

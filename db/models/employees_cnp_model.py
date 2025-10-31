@@ -18,6 +18,10 @@ class EmployeesCNP(Base):
         back_populates="employee",
         cascade="all, delete-orphan"
     )
+    email_information: Mapped["EmployeesEmail"] = relationship(
+        back_populates="employee",
+        cascade="all, delete-orphan"
+    )
     personal_information: Mapped["EmployeesPersonalInformation"] = relationship(
         back_populates="employee",
         cascade="all, delete-orphan"

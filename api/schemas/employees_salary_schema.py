@@ -7,7 +7,7 @@ class EmployeesSalarySchema(BaseModel):
     bonus: StrictFloat = Field(ge=0, le=1000)
     work: StrictInt
     vacation: StrictInt
-    employee_id: StrictStr = Field("employeeId")
+    employee_id: StrictStr = Field(alias="employeeId")
 
 
     @model_validator(mode="after")

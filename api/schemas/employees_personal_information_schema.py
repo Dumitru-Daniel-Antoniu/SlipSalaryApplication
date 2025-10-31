@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, StrictInt, StrictStr, field_validator
+from pydantic import BaseModel, Field, StrictStr, field_validator
 from datetime import date
 
 BIRTH_MIN = date(1965, 1, 1)

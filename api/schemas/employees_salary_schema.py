@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, StrictFloat, StrictInt, model_validator
+from pydantic import BaseModel, Field, StrictFloat, StrictInt, StrictStr, model_validator
 
 class EmployeesSalarySchema(BaseModel):
     month: StrictInt = Field(ge=1, le=12)
@@ -7,7 +7,8 @@ class EmployeesSalarySchema(BaseModel):
     bonus: StrictFloat = Field(ge=0, le=1000)
     work: StrictInt
     vacation: StrictInt
-    employee_id: StrictInt = Field("employeeId")
+    employee_id: StrictStr = Field("employeeId")
+
 
     @model_validator(mode="after")
     def check_total_days(self):

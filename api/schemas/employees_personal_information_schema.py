@@ -9,7 +9,7 @@ class EmployeesPersonalInformationSchema(BaseModel):
     department: StrictStr
     date_of_birth: date = Field(alias="dateOfBirth")
     date_of_hire: date = Field(alias="dateOfHire")
-    employee_id: StrictInt = Field(alias="employeeId")
+    employee_id: StrictStr = Field(alias="employeeId")
 
 
     @field_validator("date_of_birth")

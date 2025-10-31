@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, StrictInt, StrictStr, field_validator
 class EmployeesNameSchema(BaseModel):
     name: StrictStr
     surname: StrictStr
-    employee_id: StrictInt = Field(alias="employeeId")
+    employee_id: StrictStr = Field(alias="employeeId")
 
 
     @field_validator("name", "surname")

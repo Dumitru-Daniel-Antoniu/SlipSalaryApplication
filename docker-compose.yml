@@ -10,6 +10,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://admin:password@postgres_db:5432/myapp
     depends_on:
       - postgres
+    volumes:
+      - ./temporary/csv:/app/temporary/csv
+      - ./temporary/pdf:/app/temporary/pdf
 
   postgres:
     image: postgres:16

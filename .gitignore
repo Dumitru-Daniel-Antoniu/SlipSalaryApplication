@@ -4,3 +4,6 @@ alembic/versions/__pycache__
 */__pycache__/
 
 .env
+.flaskenv
+
+temporary/

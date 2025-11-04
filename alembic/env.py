@@ -1,3 +1,6 @@
+import dotenv
+import os
+
 from db.base import Base
 
 from logging.config import fileConfig
@@ -6,6 +9,9 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+
+dotenv.load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -26,6 +32,13 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+user = os.getenv("DATABASE_USER")
+password = os.getenv("DATABASE_PASSWORD")
+name = os.getenv("DATABASE_NAME")
+port = os.getenv("DATABASE_PORT")
+
+sqlalchemy_url = f"postgresql://{user}:{password}@localhost:{port}/{name}"
+config.set_main_option("sqlalchemy.url", sqlalchemy_url)
 
 
 def run_migrations_offline() -> None:

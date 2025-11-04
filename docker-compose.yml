@@ -1,13 +1,13 @@
-version: '3.8'
-
 services:
   web:
     build: .
     container_name: web_app
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://admin:password@postgres_db:5432/myapp
+      DATABASE_URL: postgresql+asyncpg://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
     depends_on:
       - postgres
     volumes:
@@ -16,11 +16,13 @@ services:
 
   postgres:
     image: postgres:16
-    container_name: postgres_db
+    container_name: p_db
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: myapp
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
     ports:
       - "5432:5432"
     volumes:

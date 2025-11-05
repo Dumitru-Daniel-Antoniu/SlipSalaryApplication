@@ -7,3 +7,4 @@ alembic/versions/__pycache__
 .flaskenv
 
 temporary/
+archive/

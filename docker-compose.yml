@@ -13,6 +13,7 @@ services:
     volumes:
       - ./temporary/csv:/app/temporary/csv
       - ./temporary/pdf:/app/temporary/pdf
+      - ./archive:/app/archive
 
   postgres:
     image: postgres:16

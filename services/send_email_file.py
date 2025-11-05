@@ -6,7 +6,7 @@ domain = os.getenv("DOMAIN_NAME")
 key = os.getenv("API_KEY")
 
 
-def send_email_message(to_email: str, subject: str, text: str, file_path: str, file_type: str):
+async def send_email_message(to_email: str, subject: str, text: str, file_path: str, file_type: str):
 	if file_type == "pdf":
 		filename = "salary_report.pdf"
 	else:

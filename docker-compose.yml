@@ -14,6 +14,9 @@ services:
       - ./temporary/csv:/app/temporary/csv
       - ./temporary/pdf:/app/temporary/pdf
       - ./archive:/app/archive
+      - ./alembic:/app/alembic
+      - ./alembic/versions:/app/alembic/versions
+      - ./alembic.ini:/app/alembic.ini
 
   postgres:
     image: postgres:16

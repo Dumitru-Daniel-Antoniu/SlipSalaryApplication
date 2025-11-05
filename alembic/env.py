@@ -35,9 +35,10 @@ target_metadata = Base.metadata
 user = os.getenv("DATABASE_USER")
 password = os.getenv("DATABASE_PASSWORD")
 name = os.getenv("DATABASE_NAME")
+host = os.getenv("DATABASE_HOST")
 port = os.getenv("DATABASE_PORT")
 
-sqlalchemy_url = f"postgresql://{user}:{password}@localhost:{port}/{name}"
+sqlalchemy_url = f"postgresql://{user}:{password}@{host}:{port}/{name}"
 config.set_main_option("sqlalchemy.url", sqlalchemy_url)
 
 

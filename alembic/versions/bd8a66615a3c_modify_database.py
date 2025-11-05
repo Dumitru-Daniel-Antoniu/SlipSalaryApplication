@@ -69,3 +69,4 @@ def downgrade() -> None:
     op.drop_table("employees_email")
     op.drop_table("employees_name")
     op.drop_table("employees_cnp")
+    op.drop_table("idempotency_keys")

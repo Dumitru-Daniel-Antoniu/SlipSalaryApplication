@@ -1,5 +1,6 @@
 import os
 
+from api.decorators.manager_required import manager_required
 from api.schemas.idempotency_schema import IdempotencyKeySchema
 
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ csv_data_bp = Blueprint("csv_data", __name__)
 
 
 @csv_data_bp.route("/createAggregatedEmployeeData/<int:employee_id>", methods=["POST"])
+@manager_required
 async def create_csv_data(employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
     endpoint = request.path
@@ -51,6 +53,7 @@ async def create_csv_data(employee_id):
 
 
 @csv_data_bp.route("/sendAggregatedEmployeeData/<int:employee_id>", methods=["POST"])
+@manager_required
 async def send_pdf_data(employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
     endpoint = request.path

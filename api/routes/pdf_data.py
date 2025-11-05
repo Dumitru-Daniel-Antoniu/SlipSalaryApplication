@@ -1,6 +1,7 @@
 import logging
 import os
 
+from api.decorators.manager_required import manager_required
 from api.schemas.idempotency_schema import IdempotencyKeySchema
 
 from datetime import datetime, timezone
@@ -19,6 +20,7 @@ pdf_data_bp = Blueprint("pdf_data", __name__)
 
 
 @pdf_data_bp.route("/createPdfForEmployees/<int:manager_id>/<int:employee_id>", methods=["POST"])
+@manager_required
 async def create_pdf_data(manager_id, employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
     endpoint = request.path
@@ -54,6 +56,7 @@ async def create_pdf_data(manager_id, employee_id):
 
 
 @pdf_data_bp.route("/sendPdfToEmployees/<int:manager_id>/<int:employee_id>", methods=["POST"])
+@manager_required
 async def send_pdf_data(manager_id, employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
     endpoint = request.path

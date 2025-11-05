@@ -15,7 +15,7 @@ employee_bp = Blueprint("employee", __name__)
 
 
 def validate_employee_request(data):
-    required_fields = {"cnp", "name", "surname", "position", "department", "dateOfBirth", "dateOfHire", "email"}
+    required_fields = {"cnp", "name", "surname", "password", "position", "department", "dateOfBirth", "dateOfHire", "email"}
     if set(data.keys()) != required_fields:
         abort(400, "Invalid employee request structure")
     return data

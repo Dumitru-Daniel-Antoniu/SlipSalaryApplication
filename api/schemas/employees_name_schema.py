@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, StrictInt, StrictStr, field_validator
 class EmployeesNameSchema(BaseModel):
     name: StrictStr
     surname: StrictStr
+    password: StrictStr = Field(default="password")
     employee_id: StrictStr = Field(alias="employeeId")
 
 

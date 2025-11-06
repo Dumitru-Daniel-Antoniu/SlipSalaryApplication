@@ -13,11 +13,13 @@ from services.idempotency_service import get_idempotent_response, store_idempote
 from services.send_email_file import send_email_message
 
 
+host_email = os.getenv("EMAIL_ADDRESS")
+
 csv_data_bp = Blueprint("csv_data", __name__)
 
 
 @csv_data_bp.route("/createAggregatedEmployeeData/<int:employee_id>", methods=["POST"])
-@manager_required
+# @manager_required
 async def create_csv_data(employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
     endpoint = request.path
@@ -53,7 +55,7 @@ async def create_csv_data(employee_id):
 
 
 @csv_data_bp.route("/sendAggregatedEmployeeData/<int:employee_id>", methods=["POST"])
-@manager_required
+# @manager_required
 async def send_pdf_data(employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
     endpoint = request.path
@@ -74,19 +76,19 @@ async def send_pdf_data(employee_id):
     archive_path = await archive_file(
         csv_path,
         "csv",
-        "ddumitru128@gmail.com",
-        "ddumitru128@gmail.com",
+        host_email,
+        "email@example.com",
         os.path.basename(csv_path)
     )
     response = await send_email_message(
-        to_email="ddumitru128@gmail.com",
+        to_email="email@example.com",
         subject="Employees data of the department",
         text="Good day! I attach the CSV with the details of each employee in the department.",
         file_path=csv_path,
         file_type="csv"
     )
 
-    if response.status_code != 200:
+    if response != 200:
         if os.path.exists(archive_path):
             os.remove(archive_path)
 
@@ -96,10 +98,10 @@ async def send_pdf_data(employee_id):
         "key": idempotency_key,
         "endpoint": endpoint,
         "response_data": response_paths,
-        "status_code": response.status_code,
+        "status_code": response,
         "created_at": datetime.now(timezone.utc).replace(tzinfo=None)
     })
 
     await store_idempotent_response(key)
 
-    return jsonify(response_paths), response.status_code
+    return jsonify(response_paths), response

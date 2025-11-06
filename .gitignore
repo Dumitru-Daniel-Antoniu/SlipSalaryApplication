@@ -8,3 +8,6 @@ alembic/versions/__pycache__
 
 temporary/
 archive/
+
+frontend/node_modules/
+frontend/public/

@@ -1,4 +1,5 @@
 import bcrypt
+import logging
 
 from db.models.employees_cnp_model import EmployeesCNP
 from db.models.employees_email_model import EmployeesEmail
@@ -20,10 +21,13 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound, SQLAlchemyError
 
+
+logging.basicConfig(level=logging.INFO)
+
 auth_bp = Blueprint('auth', __name__)
 
 
-async def validate_employee_request(data, required_fields = None):
+def validate_employee_request(data, required_fields = None):
     if required_fields is None:
         required_fields = {"cnp", "name", "surname", "password", "position", "department", "dateOfBirth", "dateOfHire", "email"}
     if set(data.keys()) != required_fields:
@@ -99,12 +103,16 @@ async def register():
             await session.commit()
 
             access_token = create_access_token(identity={
+                "name": data["name"],
+                "surname": data["surname"],
                 "email": data["email"],
                 "position": data["position"],
                 "department": data["department"]
             })
 
             refresh_token = create_refresh_token(identity={
+                "name": data["name"],
+                "surname": data["surname"],
                 "email": data["email"],
                 "position": data["position"],
                 "department": data["department"]
@@ -128,27 +136,36 @@ async def login():
     data = validate_employee_request(request.get_json(), required_fields={"email", "password"})
     async with async_session() as session:
         try:
+            logging.info("Attempting to log in with email: %s", data["email"])
             email_data = await session.execute(
                 select(EmployeesEmail).where(EmployeesEmail.email == data["email"])
             )
 
+            logging.info("Searching for email: %s", email_data)
             email = email_data.scalar_one_or_none()
             if not email:
+                logging.error("Email not found: %s", data["email"])
                 abort(404, "Email not found")
 
+            logging.info("Email found: %s", email.email)
             employee_id = email.employee_id
+            logging.info("Corresponding employee ID: %s", employee_id)
 
             name_data = await session.execute(
                 select(EmployeesName).where(EmployeesName.employee_id == employee_id)
             )
 
+            logging.info("Name data query result: %s", name_data)
             name = name_data.scalar_one_or_none()
             if not name:
+                logging.error("Employee name not found: %s", name)
                 abort(404, "Employee name not found")
+
 
             registration_password = name.password.encode()
             login_password = data["password"].encode()
             if not bcrypt.checkpw(login_password, registration_password):
+                logging.error("Invalid password")
                 abort(401, "Invalid password")
 
             personal_information_data = await session.execute(
@@ -158,30 +175,40 @@ async def login():
 
             personal_information = personal_information_data.scalar_one_or_none()
             if not personal_information:
+                logging.error("Employee personal information not found: %s", personal_information)
                 abort(404, "Employee personal information not found")
 
             access_token = create_access_token(identity={
+                "name": name.name,
+                "surname": name.surname,
                 "email": data["email"],
                 "position": personal_information.position,
                 "department": personal_information.department
             })
 
+            logging.info("Access token created: %s", access_token)
             refresh_token = create_refresh_token(identity={
+                "name": name.name,
+                "surname": name.surname,
                 "email": data["email"],
                 "position": personal_information.position,
                 "department": personal_information.department
             })
 
+            logging.info("Refresh token created: %s", refresh_token)
             return jsonify(
                 message="Employee logged successfully",
                 access_token=access_token,
                 refresh_token=refresh_token
             ), 200
         except MultipleResultsFound:
+            logging.error("Multiple entries found for the email: %s", data["email"])
             abort(500, "Multiple entries found for the email")
         except SQLAlchemyError:
+            logging.error("Database error occurred")
             abort(500, "Database error")
-        except Exception:
+        except Exception as e:
+            logging.error("An unknown error occurred %s", str(e))
             abort(500, "Unknown error")
 
 

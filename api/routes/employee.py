@@ -1,6 +1,8 @@
+import logging
+
 from flask import Blueprint, request, jsonify, abort
 from db.session import async_session
-
+from sqlalchemy.exc import SQLAlchemyError
 from api.schemas.employees_cnp_schema import EmployeesCNPSchema
 from api.schemas.employees_name_schema import EmployeesNameSchema
 from api.schemas.employees_personal_information_schema import EmployeesPersonalInformationSchema
@@ -9,7 +11,10 @@ from db.models.employees_cnp_model import EmployeesCNP
 from db.models.employees_name_model import EmployeesName
 from db.models.employees_personal_information_model import EmployeesPersonalInformation
 from db.models.employees_email_model import EmployeesEmail
+from db.models.employees_salary_model import EmployeesSalary
 
+
+logging.basicConfig(level=logging.INFO)
 
 employee_bp = Blueprint("employee", __name__)
 
@@ -19,47 +24,6 @@ def validate_employee_request(data):
     if set(data.keys()) != required_fields:
         abort(400, "Invalid employee request structure")
     return data
-
-
-@employee_bp.route("/employees", methods=["POST"])
-async def create_employee():
-    data = validate_employee_request(request.get_json())
-    async with async_session() as session:
-        cnp_data = EmployeesCNPSchema.model_validate({
-            "cnp": data["cnp"],
-            "id": None
-        })
-        cnp = EmployeesCNP(cnp=data["cnp"])
-        session.add(cnp)
-        await session.flush()
-
-        name_data = EmployeesNameSchema.model_validate({
-            "name": data["name"],
-            "surname": data["surname"],
-            "employeeId": cnp.cnp
-        })
-        name = EmployeesName(**name_data.model_dump())
-        session.add(name)
-
-        personal_data = EmployeesPersonalInformationSchema.model_validate({
-            "position": data["position"],
-            "department": data["department"],
-            "dateOfBirth": data["dateOfBirth"],
-            "dateOfHire": data["dateOfHire"],
-            "employeeId": cnp.cnp
-        })
-        personal = EmployeesPersonalInformation(**personal_data.model_dump())
-        session.add(personal)
-
-        email_data = EmployeesEmailSchema.model_validate({
-            "email": data["email"],
-            "employeeId": cnp.cnp
-        })
-        email = EmployeesEmail(**email_data.model_dump())
-        session.add(email)
-
-        await session.commit()
-        return jsonify({"Message": "Successful creation of the employee"}), 201
 
 
 @employee_bp.route("/employees/<int:id>", methods=["GET"])

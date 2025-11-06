@@ -1,6 +1,9 @@
 import logging
 
 from flask import Blueprint, request, jsonify, abort
+from sqlalchemy.exc import MultipleResultsFound, SQLAlchemyError
+
+from db.models.employees_email_model import EmployeesEmail
 from db.session import async_session
 
 from api.schemas.employees_salary_schema import EmployeesSalarySchema
@@ -16,10 +19,9 @@ salary_bp = Blueprint("salary", __name__)
 
 
 def validate_salary_days_request(data):
-    required_fields_first = {"month", "year", "salary", "bonus", "work", "vacation", "employeeId"}
-    required_fields_second = {"month", "year", "salary", "bonus", "work", "vacation", "employee_id"}
+    required_fields = {"month", "year", "salary", "bonus", "work", "vacation", "email"}
     logging.info("The keys are the following: %s", data.keys())
-    if set(data.keys()) != required_fields_first and set(data.keys()) != required_fields_second:
+    if set(data.keys()) != required_fields:
         abort(400, "Invalid salary/days request structure")
     return data
 
@@ -30,23 +32,40 @@ async def create_salary():
     logging.info("The structure of the request is %s", request.get_json())
     data = validate_salary_days_request(request.get_json())
     async with async_session() as session:
-        salary_data = EmployeesSalarySchema.model_validate({
-            "month": data["month"],
-            "year": data["year"],
-            "salary": data["salary"],
-            "bonus": data["bonus"],
-            "work": data["work"],
-            "vacation": data["vacation"],
-            "employeeId": data["employeeId"]
-        })
+        try:
+            email_data = await session.execute(
+                select(EmployeesEmail).where(EmployeesEmail.email == data["email"])
+            )
 
-        logging.info("The validated model is %s", salary_data)
-        salary = EmployeesSalary(**salary_data.model_dump())
-        logging.info("The salary object to be added is %s", salary)
-        session.add(salary)
-        await session.commit()
+            email = email_data.scalar_one_or_none()
+            if not email:
+                abort(404, "Employee with given email not found")
 
-        return jsonify({"Message": "Successful creation of salary"}), 201
+            employee_id = email.employee_id
+
+            salary_data = EmployeesSalarySchema.model_validate({
+                "month": data["month"],
+                "year": data["year"],
+                "salary": data["salary"],
+                "bonus": data["bonus"],
+                "work": data["work"],
+                "vacation": data["vacation"],
+                "employeeId": employee_id
+            })
+
+            logging.info("The validated model is %s", salary_data)
+            salary = EmployeesSalary(**salary_data.model_dump())
+            logging.info("The salary object to be added is %s", salary)
+            session.add(salary)
+            await session.commit()
+
+            return jsonify({"Message": "Successful creation of salary"}), 201
+        except MultipleResultsFound:
+            abort(400, "Multiple employees found with the same email")
+        except SQLAlchemyError:
+            abort(500, "Database error")
+        except Exception as e:
+            abort(500, "Unknown error")
 
 
 @salary_bp.route("/salary/<int:id>", methods=["GET"])

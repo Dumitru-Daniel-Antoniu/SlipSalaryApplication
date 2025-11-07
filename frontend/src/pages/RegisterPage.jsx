@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './RegisterPage.css';
+import { setStoredTokens, getStoredTokens } from '../hooks/useAuth';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -19,9 +20,8 @@ export default function RegisterPage() {
   const [backendError, setBackendError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // If tokens exist, redirect to main page
   useEffect(() => {
-    const access = localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+    const { access } = getStoredTokens();
     if (access) navigate('/');
   }, [navigate]);
 
@@ -34,18 +34,15 @@ export default function RegisterPage() {
 
   const validate = () => {
     const next = {};
-    // required
+
     Object.keys(form).forEach((field) => {
       if (!String(form[field] || '').trim()) next[field] = 'This field is required.';
     });
 
-    // email
     if (form.email && !/\S+@\S+\.\S+/.test(form.email)) next.email = 'Enter a valid email.';
 
-    // password min length
     if (form.password && form.password.length < 6) next.password = 'Password must be at least 6 characters.';
 
-    // simple CNP check (13 digits)
     if (form.cnp && !/^\d{13}$/.test(form.cnp)) next.cnp = 'CNP must be 13 digits.';
 
     setErrors(next);
@@ -68,11 +65,8 @@ export default function RegisterPage() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // backend may return a message string or a JSON with details
         const msg = json.message || json.detail || json.error || (typeof json === 'string' ? json : null);
-        // If validation errors returned as an object, try to map them
         if (json && typeof json === 'object' && !msg) {
-          // fallback: show combined messages
           const combined = Object.values(json).flat().join(' ');
           setBackendError(combined || 'Registration failed.');
         } else {
@@ -82,7 +76,6 @@ export default function RegisterPage() {
         return;
       }
 
-      // Accept different token key styles
       const access = json.access || json.access_token;
       const refresh = json.refresh || json.refresh_token;
 
@@ -92,12 +85,11 @@ export default function RegisterPage() {
         return;
       }
 
-      localStorage.setItem('accessToken', access);
-      localStorage.setItem('refreshToken', refresh);
+      setStoredTokens(access, refresh);
 
-      // Redirect to main page
-      navigate('/');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
+      console.error("RegisterPage handleSubmit, network or unexpected error:", err);
       setBackendError(err.message || 'Network error');
     } finally {
       setLoading(false);

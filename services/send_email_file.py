@@ -21,7 +21,7 @@ async def send_email_message(to_email: str, subject: str, text: str, file_path: 
 	message = EmailMessage()
 	message['Subject'] = subject
 	message['From'] = host_email
-	message['To'] = "ioanagape14@gmail.com"
+	message['To'] = to_email
 	message.set_content(text)
 
 	if file_type == "pdf":

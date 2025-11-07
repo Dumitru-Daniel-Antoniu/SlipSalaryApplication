@@ -1,4 +1,5 @@
 import logging
+import jwt
 
 from flask import Blueprint, request, jsonify, abort
 from db.session import async_session
@@ -13,6 +14,9 @@ from db.models.employees_personal_information_model import EmployeesPersonalInfo
 from db.models.employees_email_model import EmployeesEmail
 from db.models.employees_salary_model import EmployeesSalary
 
+from werkzeug.exceptions import HTTPException
+
+from sqlalchemy import select
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,6 +28,71 @@ def validate_employee_request(data):
     if set(data.keys()) != required_fields:
         abort(400, "Invalid employee request structure")
     return data
+
+
+@employee_bp.route("/employees/department", methods=["GET"])
+async def employees_in_manager_department():
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        abort(401, "Missing or invalid Authorization header")
+
+    token = auth.split(" ", 1)[1].strip()
+    try:
+        # decode without signature verification just to extract claims
+        # if you have the secret/public key available, prefer verification:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        logging.info("Decoded JWT payload: %s", payload)   
+    except Exception:
+        abort(401, "Invalid token")
+
+    department = payload.get("sub").get("department")
+    if not department:
+        logging.warning("Department claim not present in token")
+
+        abort(400, "Department claim not present in token")
+
+    async with async_session() as session:
+        # join personal info, name and email to build employee list
+        try:
+
+            stmt = (
+                select(EmployeesPersonalInformation)
+                .where(EmployeesPersonalInformation.department == department)
+            )
+            logging.info("Executing statement: %s", stmt)
+            rows = await session.execute(stmt)
+            personal_rows = rows.scalars().all()
+
+            results = []
+            logging.info("Fetched %d employees in department %s", len(personal_rows), department)
+            for pr in personal_rows:
+
+                emp_id = pr.employee_id
+                logging.info("Fetching data for employee_id: %s", emp_id)
+                # get name
+                name_row = await session.execute(
+                    select(EmployeesName).where(EmployeesName.employee_id == emp_id)
+                )
+                name = name_row.scalar_one_or_none()
+
+
+                # get email
+                email_row = await session.execute(
+                    select(EmployeesEmail).where(EmployeesEmail.employee_id == emp_id)
+                )
+                email = email_row.scalar_one_or_none()
+                results.append({
+                    "employee_id": emp_id,
+                    "name": name.name,
+                    "surname": name.surname,
+                    "email": email.email,
+                })
+
+            logging.info("Returning %d employees for department %s", len(results), department)
+            return jsonify(results)
+        except Exception as e:
+            logging.exception("Failed to fetch employees by department")
+            abort(500, "Failed to fetch employees")
 
 
 @employee_bp.route("/employees/<int:id>", methods=["GET"])

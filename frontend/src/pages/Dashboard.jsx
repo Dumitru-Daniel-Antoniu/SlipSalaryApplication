@@ -1,24 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
-
-function decodeJwt(token) {
-  if (!token) return null;
-  try {
-    const parts = token.split('.');
-    if (parts.length < 2) return null;
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const pad = payload.length % 4 === 0 ? '' : '='.repeat(4 - (payload.length % 4));
-    const decoded = atob(payload + pad);
-    return JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-}
+import { getStoredTokens, parseJwt, clearStoredTokens } from '../hooks/useAuth';
+import { logout as apiLogout } from '../api/auth';
+import { fetchWithAuth } from '../api/fetchWithAuth';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState({ name: 'Unknown', surname: '' });
+  const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState({
     month: '',
     year: '',
@@ -34,29 +24,43 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('access_token');
-    const payload = decodeJwt(token);
+    const { access } = getStoredTokens();
+    const payload = parseJwt(access);
     if (payload) {
-      setUser({ name: payload.name || 'Unknown', surname: payload.surname || '' });
+      const identity = payload.sub || payload;
+      setUser({ name: identity.name || 'Unknown', surname: identity.surname || '' });
     }
+
+    (async () => {
+      try {
+        const res = await fetchWithAuth('/employees/department');
+        let data = null;
+        let text = null;
+        try { data = await res.json(); } catch { text = await res.text().catch(() => null); }
+
+        if (!res.ok) {
+          const msg = data?.message || data?.Message || text || 'Failed to load employees';
+          setBackendError(msg);
+          return;
+        }
+
+        // attach lastMessage to each row so we can show per-employee status
+        setEmployees(Array.isArray(data) ? data.map((e) => ({ ...e, lastMessage: '' })) : []);
+      } catch (err) {
+        setBackendError(err.message || 'Network error while fetching employees');
+      }
+    })();
   }, []);
 
   const logout = async () => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('access_token');
-    // try to inform backend (if endpoint exists) but don't block logout
-    if (token) {
-      try {
-        await fetch('/logout', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => {});
-      } catch {}
+    try {
+      await apiLogout();
+    } catch {
+      // ignore network errors
+    } finally {
+      clearStoredTokens();
+      navigate('/login', { replace: true });
     }
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('refresh_token');
-    navigate('/login', { replace: true });
   };
 
   const handleChange = (e) => {
@@ -112,50 +116,107 @@ export default function DashboardPage() {
       bonus: Number(form.bonus),
       work: Number(form.work),
       vacation: Number(form.vacation),
-      // backend expects employeeId (or employee_id) - send email as identifier for now
-      employeeId: form.email,
+      email: form.email,
     };
 
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('access_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const res = await fetch('/salary', {
+      const res = await fetchWithAuth('/salary', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      let json;
+      let json = null;
+      let text = null;
       try {
         json = await res.json();
-      } catch {
-        json = null;
+      } catch (err) {
+        try { text = await res.text(); } catch { text = null; }
       }
 
+      const extractMsg = (obj) => {
+        if (!obj || typeof obj !== 'object') return null;
+        return obj.message || obj.Message || obj.detail || obj.error || null;
+      };
+
       if (!res.ok) {
-        // map validation-like responses or generic message
-        if (json && typeof json === 'object') {
-          const msg = json.message || json.detail || json.error;
-          if (msg) setBackendError(msg);
-          else {
-            const combined = Object.values(json).flat?.().join(' ') || JSON.stringify(json);
-            setBackendError(combined);
-          }
-        } else {
-          setBackendError(json || 'Request failed');
+        const msgFromJson = extractMsg(json);
+        if (msgFromJson) setBackendError(msgFromJson);
+        else if (text) setBackendError(text);
+        else {
+          const combined = json ? (Object.values(json).flat?.().join(' ') || JSON.stringify(json)) : 'Request failed';
+          setBackendError(combined);
         }
         setLoading(false);
         return;
       }
 
-      setSuccess('Salary created successfully.');
+      const successMsg = extractMsg(json) || text || 'Salary created successfully.';
+      setSuccess(successMsg);
       setForm({ month: '', year: '', salary: '', bonus: '', work: '', vacation: '', email: '' });
     } catch (err) {
       setBackendError(err.message || 'Network error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Call backend endpoints with { email } and show response per-row
+  const handleGeneratePdf = async (employee) => {
+    setBackendError('');
+    setSuccess('');
+    // optimistic: clear lastMessage for this row
+    setEmployees((prev) => prev.map((e) => (e.email === employee.email ? { ...e, lastMessage: '' } : e)));
+    try {
+      const res = await fetchWithAuth('/createPdfForEmployees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: employee.email }),
+      });
+
+      let json = null;
+      let text = null;
+      try { json = await res.json(); } catch { text = await res.text().catch(() => null); }
+
+      const msg = json?.message || json?.Message || text || (res.ok ? 'PDF generated' : 'Failed to generate PDF');
+
+      // attach message to the specific employee row
+      setEmployees((prev) => prev.map((e) => e.email === employee.email ? { ...e, lastMessage: msg } : e));
+
+      if (!res.ok) setBackendError(msg);
+      else setSuccess(msg);
+    } catch (err) {
+      const m = err?.message || 'Network error while generating PDF';
+      setBackendError(m);
+      setEmployees((prev) => prev.map((e) => e.email === employee.email ? { ...e, lastMessage: m } : e));
+    }
+  };
+
+  const handleSendPdf = async (employee) => {
+    setBackendError('');
+    setSuccess('');
+    setEmployees((prev) => prev.map((e) => (e.email === employee.email ? { ...e, lastMessage: '' } : e)));
+    try {
+      const res = await fetchWithAuth('/sendPdfToEmployees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: employee.email }),
+      });
+
+      let json = null;
+      let text = null;
+      try { json = await res.json(); } catch { text = await res.text().catch(() => null); }
+
+      const msg = json?.message || json?.Message || text || (res.ok ? 'PDF sent' : 'Failed to send PDF');
+
+      setEmployees((prev) => prev.map((e) => e.email === employee.email ? { ...e, lastMessage: msg } : e));
+
+      if (!res.ok) setBackendError(msg);
+      else setSuccess(msg);
+    } catch (err) {
+      const m = err?.message || 'Network error while sending PDF';
+      setBackendError(m);
+      setEmployees((prev) => prev.map((e) => e.email === employee.email ? { ...e, lastMessage: m } : e));
     }
   };
 
@@ -216,7 +277,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label htmlFor="email">Email (employee identifier)</label>
+                <label htmlFor="email">Email</label>
                 <input id="email" name="email" value={form.email} onChange={handleChange} className="register-input" />
                 {errors.email && <div className="field-error">{errors.email}</div>}
               </div>
@@ -228,6 +289,44 @@ export default function DashboardPage() {
               </button>
             </div>
           </form>
+        </section>
+
+        <section className="salary-card" style={{ marginLeft: 24, width: 900 }} aria-labelledby="employees-title">
+          <h2 id="employees-title" className="salary-title">Team employees</h2>
+
+          {employees.length === 0 ? (
+            <p>No employees found in your department.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Name</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Surname</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Email</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp) => (
+                  <tr key={emp.employee_id || emp.email}>
+                    <td style={{ padding: 8 }}>{emp.name}</td>
+                    <td style={{ padding: 8 }}>{emp.surname}</td>
+                    <td style={{ padding: 8 }}>{emp.email}</td>
+                    <td style={{ padding: 8 }}>{emp.lastMessage || ''}</td>
+                    <td style={{ padding: 8 }}>
+                      <button type="button" onClick={() => handleGeneratePdf(emp)} style={{ marginRight: 8 }}>
+                        Generate PDF
+                      </button>
+                      <button type="button" onClick={() => handleSendPdf(emp)}>
+                        Send PDF
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </main>
     </div>

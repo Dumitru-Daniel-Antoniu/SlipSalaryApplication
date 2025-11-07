@@ -58,6 +58,7 @@ async def create_csv_data(employee_id):
 # @manager_required
 async def send_pdf_data(employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
+    email = request.headers.get("Email")
     endpoint = request.path
 
     if not idempotency_key:
@@ -77,13 +78,13 @@ async def send_pdf_data(employee_id):
         csv_path,
         "csv",
         host_email,
-        "email@example.com",
+        email,
         os.path.basename(csv_path)
     )
     response = await send_email_message(
-        to_email="email@example.com",
+        to_email=email,
         subject="Employees data of the department",
-        text="Good day! I attach the CSV with the details of each employee in the department.",
+        text="Good day! I attach the CSV with the details of each employee in the department. Have a great day",
         file_path=csv_path,
         file_type="csv"
     )

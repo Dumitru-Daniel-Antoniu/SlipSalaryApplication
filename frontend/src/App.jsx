@@ -3,34 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/Dashboard';
+import { isAuthenticated } from './hooks/useAuth';
 import './App.css';
-
-function parseJwt(token) {
-  if (!token) return null;
-  try {
-    const parts = token.split('.');
-    if (parts.length < 2) return null;
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const pad = payload.length % 4 === 0 ? '' : '='.repeat(4 - (payload.length % 4));
-    const decoded = atob(payload + pad);
-    return JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-}
-
-function isAuthenticated() {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('access_token');
-  if (!token) return false;
-  const payload = parseJwt(token);
-  if (!payload) return false;
-  // if token has exp claim, ensure it's still valid
-  if (payload.exp && typeof payload.exp === 'number') {
-    const now = Math.floor(Date.now() / 1000);
-    return payload.exp > now;
-  }
-  return true;
-}
 
 function App() {
   return (
@@ -38,7 +12,9 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={isAuthenticated() ? <DashboardPage /> : <Navigate to="/login" replace />}
+          element={
+            isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+          }
         />
         <Route
           path="/dashboard"

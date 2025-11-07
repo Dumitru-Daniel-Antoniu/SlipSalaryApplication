@@ -9,7 +9,7 @@ def manager_required(fn):
     @wraps(fn)
     async def wrapper(*args, **kwargs):
         identity = get_jwt_identity()
-        if identity.get("position").lower().strip() != "manager":
+        if identity.get("sub").get("position").lower().strip() != "manager":
             abort(403, "Manager position required")
         return await fn(*args, **kwargs)
     return wrapper

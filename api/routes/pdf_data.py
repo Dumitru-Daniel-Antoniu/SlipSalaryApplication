@@ -61,24 +61,19 @@ async def create_pdf_data(manager_id, employee_id):
 # @manager_required
 async def send_pdf_data(manager_id, employee_id):
     idempotency_key = request.headers.get("Idempotency-Key")
+    email = request.headers.get("Email")
     endpoint = request.path
-    logging.info("Idempotency Key: %s", idempotency_key)
-    logging.info("Endpoint: %s", endpoint)
 
     if not idempotency_key:
         return jsonify({"error": "Missing Idempotency-Key header"}), 400
 
     try:
-        logging.info("Data retrieval attempt for idempotency key.")
         response_data, status_code = await get_idempotent_response(idempotency_key, endpoint)
         return jsonify(response_data), status_code
     except Exception as e:
-        logging.info("Exception case %s", e)
         if getattr(e, "code", None) == 404:
-            logging.info("Key not found")
             pass
         else:
-            logging.info("Buba au")
             raise
 
     pdf_path = await generate_pdf_data(manager_id, employee_id)
@@ -86,13 +81,13 @@ async def send_pdf_data(manager_id, employee_id):
         pdf_path,
         "pdf",
         host_email,
-        "email@example.com",
+        email,
         os.path.basename(pdf_path)
     )
     response = await send_email_message(
-        to_email="email@example.com",
+        to_email=email,
         subject="Employee salary",
-        text="Good day! I attach the PDF with the salary details of the current month.",
+        text="Good day! I attach the PDF with the salary details of the current month. To unlock it, use your CNP. Have a great day!",
         file_path=pdf_path,
         file_type="pdf"
     )

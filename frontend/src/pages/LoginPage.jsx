@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
+import { setStoredTokens } from '../hooks/useAuth';
 import './LoginPage.css';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,21 +15,25 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    console.log("Start the handling of submit")
+
     try {
       // login() will POST to /login and return JSON { access, refresh, ... }
       const data = await login({ email, password });
-      // persist tokens for later requests
-      console.log("The data received from login:", data);
-      localStorage.setItem('accessToken', data.access);
-      localStorage.setItem('refreshToken', data.refresh);
-      // optional: trigger navigation or app state change after login
-      // window.location.href = '/';
+
+      const access = data.access || data.access_token;
+      const refresh = data.refresh || data.refresh_token;
+
+      if (!access || !refresh) {
+        setError('No tokens received from server.');
+        setLoading(false);
+        return;
+      }
+
+      setStoredTokens(access, refresh);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-        console.log("Login failed")
       setError(err.message || 'Login failed');
     } finally {
-        console.log("Final state")
       setLoading(false);
     }
   };
